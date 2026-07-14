@@ -130,10 +130,16 @@ WORKDIR /build/src
 # build needs (release, no debug symbols to save time/disk), plus proprietary
 # codec support (H.264/AAC/MP3) — flags.gn doesn't set this, so without it
 # ffmpeg is built decoder-less for these formats and sites like YouTube fail
-# with "FFmpegDemuxer: no supported streams".
+# with "FFmpegDemuxer: no supported streams" — plus WebGPU/WebXR trimmed for
+# this build's use case (no browser games/VR). Note: enable_speech_service=false
+# and enable_background_mode/contents=false were also tried and reverted —
+# chrome/test/BUILD.gn unconditionally depends on those subsystems' test
+# targets, so disabling them breaks `gn gen` with unresolved dependencies;
+# properly removing them would need patching Chromium's own test BUILD.gn,
+# not just a flag flip.
 RUN mkdir -p out/Release \
     && cp ../ungoogled-chromium/flags.gn out/Release/args.gn \
-    && printf 'is_debug=false\nsymbol_level=0\nproprietary_codecs=true\nffmpeg_branding="Chrome"\n' >> out/Release/args.gn \
+    && printf 'is_debug=false\nsymbol_level=0\nproprietary_codecs=true\nffmpeg_branding="Chrome"\nuse_dawn=false\nskia_use_dawn=false\nuse_webgpu_on_vulkan_via_gl_interop=false\nenable_vr=false\n' >> out/Release/args.gn \
     && gn gen out/Release --fail-on-unused-args
 
 COPY container-build.sh container-collect.sh /usr/local/bin/
